@@ -1,4 +1,4 @@
-/*! angular-google-chart 2015-07-15 */
+/*! angular-google-chart 2015-08-25 */
 /*
 * @description Google Chart Api Directive Module for AngularJS
 * @version 0.0.11
@@ -330,11 +330,28 @@
 /* global angular */
 (function(){
     angular.module('googlechart')
-        .value('googleChartApiConfig', {
-            version: '1',
-            optionalSettings: {
-                packages: ['corechart']
-            }
+        
+        .provider('googleChartApiConfig', function googleChartApiConfigProvider() {
+            var config = {
+                useFrozen: false,
+                version: 1,
+                optionalSettings: {
+                    packages: ['corechart']
+                }
+            };
+            
+            this.setVersion = function(version){
+                config.version = version;
+                config.useFrozen = true;
+            };
+            
+            this.addPackages = function(packages){
+                config.optionalSettings.packages = config.optionalSettings.packages.concat(packages);
+            };
+
+            this.$get = function(){
+                return config;
+            };
         });
 })();
 /* global angular */
@@ -342,9 +359,9 @@
     angular.module('googlechart')
         .factory('googleChartApiPromise', googleChartApiPromiseFactory);
         
-    googleChartApiPromiseFactory.$inject = ['$rootScope', '$q', 'googleChartApiConfig', 'googleJsapiUrl'];
+    googleChartApiPromiseFactory.$inject = ['$rootScope', '$q', 'googleChartApiConfig', 'googleJsapiUrl', 'googleFrozenJsapiUrl'];
         
-    function googleChartApiPromiseFactory($rootScope, $q, apiConfig, googleJsapiUrl) {
+    function googleChartApiPromiseFactory($rootScope, $q, apiConfig, googleJsapiUrl,googleFrozenJsapiUrl) {
         var apiReady = $q.defer();
         var onLoad = function () {
             // override callback function
@@ -363,13 +380,17 @@
 
             settings = angular.extend({}, apiConfig.optionalSettings, settings);
 
-            window.google.load('visualization', apiConfig.version, settings);
+            if(apiConfig.useFrozen){
+                window.google.charts.load(apiConfig.version, settings);
+            }else{
+                window.google.load('visualization', apiConfig.version, settings);
+            }
         };
         var head = document.getElementsByTagName('head')[0];
         var script = document.createElement('script');
 
         script.setAttribute('type', 'text/javascript');
-        script.src = googleJsapiUrl;
+        script.src = apiConfig.useFrozen ? googleFrozenJsapiUrl : googleJsapiUrl;
 
         if (script.addEventListener) { // Standard browsers (including IE9+)
             script.addEventListener('load', onLoad, false);
@@ -384,6 +405,28 @@
         head.appendChild(script);
 
         return apiReady.promise;
+    }
+})();
+/* global angular */
+(function(){
+    angular.module('googlechart')
+        .provider('googleFrozenJsapiUrl', googleFrozenJsapiUrlProvider);
+        
+    function googleFrozenJsapiUrlProvider() {
+        var protocol = 'https:';
+        var url = '//www.gstatic.com/charts/loader.js';
+        
+        this.setProtocol = function (newProtocol) {
+            protocol = newProtocol;
+        };
+
+        this.setUrl = function (newUrl) {
+            url = newUrl;
+        };
+
+        this.$get = function () {
+            return (protocol ? protocol : '') + url;
+        };
     }
 })();
 /* global angular */

@@ -3,9 +3,9 @@
     angular.module('googlechart')
         .factory('googleChartApiPromise', googleChartApiPromiseFactory);
         
-    googleChartApiPromiseFactory.$inject = ['$rootScope', '$q', 'googleChartApiConfig', 'googleJsapiUrl'];
+    googleChartApiPromiseFactory.$inject = ['$rootScope', '$q', 'googleChartApiConfig', 'googleJsapiUrl', 'googleFrozenJsapiUrl'];
         
-    function googleChartApiPromiseFactory($rootScope, $q, apiConfig, googleJsapiUrl) {
+    function googleChartApiPromiseFactory($rootScope, $q, apiConfig, googleJsapiUrl,googleFrozenJsapiUrl) {
         var apiReady = $q.defer();
         var onLoad = function () {
             // override callback function
@@ -24,13 +24,17 @@
 
             settings = angular.extend({}, apiConfig.optionalSettings, settings);
 
-            window.google.load('visualization', apiConfig.version, settings);
+            if(apiConfig.useFrozen){
+                window.google.charts.load(apiConfig.version, settings);
+            }else{
+                window.google.load('visualization', apiConfig.version, settings);
+            }
         };
         var head = document.getElementsByTagName('head')[0];
         var script = document.createElement('script');
 
         script.setAttribute('type', 'text/javascript');
-        script.src = googleJsapiUrl;
+        script.src = apiConfig.useFrozen ? googleFrozenJsapiUrl : googleJsapiUrl;
 
         if (script.addEventListener) { // Standard browsers (including IE9+)
             script.addEventListener('load', onLoad, false);
